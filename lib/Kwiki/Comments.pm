@@ -3,20 +3,17 @@ use strict;
 use warnings;
 use Kwiki::Plugin '-Base';
 use mixin 'Kwiki::Installer';
-use YAML;
 use DBI;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 const class_id => 'comments';
 const class_title => 'Kwiki Comments';
 const cgi_class => 'Kwiki::Comments::CGI';
-const screen_template => 'comments_form.html';
 const css_file => 'comments.css';
 
 sub register {
     my $registry = shift;
-    $registry->add( action => 'comments' );
     $registry->add( action => 'comments_post' );
     $registry->add( wafl => comments => 'Kwiki::Comments::Wafl' );
 }
@@ -72,13 +69,8 @@ sub comments_post {
     $self->redirect("$page_id");
 }
 
-sub comments {
-    $self->render_screen;
-}
-
 package Kwiki::Comments::Wafl;
 use base 'Spoon::Formatter::WaflPhrase';
-use YAML;
 
 sub to_html {
     my $friend = $self->hub->comments;
@@ -87,15 +79,16 @@ sub to_html {
 	$friend->template_process('comments_display.html',
 				  comments => $friend->load_comments )
 	    . $friend->template_process('comments_form.html');
+    $self->utf8_decode($content);
 }
 
 package Kwiki::Comments::CGI;
-use Kwiki::CGI '-base';
+use base 'Kwiki::CGI';
 
-cgi 'author';
-cgi 'email';
-cgi 'url';
-cgi 'text';
+cgi 'author' => qw(-utf8);
+cgi 'email'  => qw(-utf8);
+cgi 'url'    => qw(-utf8);
+cgi 'text'   => qw(-utf8);
 
 package Kwiki::Comments;
 __DATA__
