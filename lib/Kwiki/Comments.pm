@@ -1,11 +1,9 @@
 package Kwiki::Comments;
-use strict;
-use warnings;
-use Kwiki::Plugin '-Base';
+use Kwiki::Plugin -Base;
 use mixin 'Kwiki::Installer';
 use DBI;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 const class_id => 'comments';
 const class_title => 'Kwiki Comments';
@@ -14,6 +12,7 @@ const css_file => 'comments.css';
 
 sub register {
     my $registry = shift;
+    $registry->add( action => 'comments' );
     $registry->add( action => 'comments_post' );
     $registry->add( wafl => comments => 'Kwiki::Comments::Wafl' );
 }
@@ -27,7 +26,7 @@ sub dbinit {
 }
 
 sub dbpath {
-    my $page_id =$self->hub->pages->current->id;
+    my $page_id = $self->cgi->page_id || $self->pages->current_id;
     my $path = $self->plugin_directory;
     my $filename =  io->catfile($path,"$page_id.sqlt")->name;
     $self->dbinit($filename) unless -f $filename;
@@ -36,9 +35,8 @@ sub dbpath {
 
 sub db_connect {
     my $db  = $self->dbpath;
-    my $dbh = DBI->connect("dbi:SQLite:dbname=$db","","",
-			   { RaiseError => 1, AutoCommit => 1 });
-    return $dbh;
+    DBI->connect("dbi:SQLite:dbname=$db","","",
+                 { RaiseError => 1, AutoCommit => 1 });
 }
 
 sub load_comments {
@@ -64,9 +62,13 @@ sub add_comment {
 
 sub comments_post {
     my $cgi = $self->cgi;
-    my $page_id = $self->hub->pages->current->id;
+    my $page_id = $cgi->page_id;
     $self->add_comment($cgi->author, $cgi->email, $cgi->url, $cgi->text);
-    $self->redirect("$page_id");
+    $self->redirect($page_id);
+}
+
+sub comments {
+    $self->template_process('comments_form.html');
 }
 
 package Kwiki::Comments::Wafl;
@@ -74,21 +76,19 @@ use base 'Spoon::Formatter::WaflPhrase';
 
 sub to_html {
     my $friend = $self->hub->comments;
-
-    my $content =
-	$friend->template_process('comments_display.html',
-				  comments => $friend->load_comments )
-	    . $friend->template_process('comments_form.html');
-    $self->utf8_decode($content);
+    my $content = $friend->template->process(
+        'comments_display.html',comments => $friend->load_comments
+       ) . $friend->template_process('comments_form.html');
 }
 
 package Kwiki::Comments::CGI;
-use base 'Kwiki::CGI';
+use Kwiki::CGI '-base';
 
 cgi 'author' => qw(-utf8);
-cgi 'email'  => qw(-utf8);
-cgi 'url'    => qw(-utf8);
-cgi 'text'   => qw(-utf8);
+cgi 'email';
+cgi 'url';
+cgi 'text' => qw(-utf8 -newlines);
+cgi 'page_id';
 
 package Kwiki::Comments;
 __DATA__
@@ -107,7 +107,7 @@ do:
     # kwiki -update
 
 Currently you'll need to have L<DBD::SQLite> module installed to use
-this module. Maybe in the future, we can support mor kind of database
+this module. Maybe in the future, we can support more kinds of database
 back-end.
 
 And now your site is ready to have comments. But, comments
@@ -175,10 +175,8 @@ __template/tt2/comments_form.html__
 <div class="comments-head">Post a comment</div>
 <div class="comments-body">
 <form method="post" action="[% script_name %]" name="comments_form">
-
 <input type="hidden" name="action" value="comments_post" />
-<input type="hidden" name="page_id" value="[% page_id %]" />
-
+<input type="hidden" name="page_id" value="[% hub.pages.current_id %]" />
 <label for="author">Name:</label><br />
 <input id="author" name="author" /><br /><br />
 <label for="email">Email Address:</label><br />
