@@ -6,7 +6,7 @@ use Kwiki::Installer '-base';
 use YAML;
 use DBI;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 const class_id => 'comments';
 const class_title => 'Kwiki Comments';
@@ -25,7 +25,7 @@ sub dbinit {
     my $db = shift;
     my $dbh = DBI->connect("dbi:SQLite:dbname=$db","","",
 			   { RaiseError => 1, AutoCommit => 1 });
-    $dbh->do('CREATE TABLE comments (author,url,email,text)');
+    $dbh->do('CREATE TABLE comments (author,email,url,text)');
     $dbh->disconnect;
 }
 
@@ -121,7 +121,7 @@ __template/tt2/comments_display.html__
 [% IF post.url %]
 [% link = post.url %]
 [% ELSIF post.email %]
-[% link = "mailto:" + post.email %]
+[% link = "mailto:${post.email}" %]
 [% ELSE %]
 [% link = '' %]
 [% END %]
