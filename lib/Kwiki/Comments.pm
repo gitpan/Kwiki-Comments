@@ -2,11 +2,11 @@ package Kwiki::Comments;
 use strict;
 use warnings;
 use Kwiki::Plugin '-Base';
-use Kwiki::Installer '-base';
+use mixin 'Kwiki::Installer';
 use YAML;
 use DBI;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 const class_id => 'comments';
 const class_title => 'Kwiki Comments';
